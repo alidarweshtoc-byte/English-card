@@ -1,0 +1,397 @@
+{
+  "entities": {
+    "UserProfileData": {
+      "title": "UserProfileData",
+      "description": "Email-keyed user account profile (/users/{email}), study progress, XP/level, lastSyncAt timestamp, and lightweight custom words (excluding built-in bulk dictionary and audio recordings).",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the verified account owner (used for direct messaging linkage).",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Lowercased, trimmed email address matching the /users/{userEmail} document ID.",
+          "minLength": 3,
+          "maxLength": 254
+        },
+        "username": {
+          "type": "string",
+          "description": "Display name chosen by the user.",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "avatarDataUrl": {
+          "type": "string",
+          "description": "Preset ID, Google profile HTTPS photo URL, or compressed JPEG data URL.",
+          "maxLength": 60000
+        },
+        "xp": {
+          "type": "number",
+          "description": "Computed study experience points."
+        },
+        "levelNumber": {
+          "type": "number",
+          "description": "Current study level number."
+        },
+        "levelTitleAr": {
+          "type": "string",
+          "description": "Arabic title for the current study level.",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "wordsCount": {
+          "type": "number",
+          "description": "Total saved custom words count."
+        },
+        "masteredCount": {
+          "type": "number",
+          "description": "Mastered custom words count."
+        },
+        "totalReviews": {
+          "type": "number",
+          "description": "Total review count across saved custom words."
+        },
+        "streak": {
+          "type": "number",
+          "description": "Current daily challenge streak."
+        },
+        "selectedVoice": {
+          "type": "string",
+          "description": "Selected English TTS voice.",
+          "enum": ["Kore", "Puck", "Charon", "Fenrir", "Zephyr"],
+          "maxLength": 20
+        },
+        "words": {
+          "type": "array",
+          "description": "Lightweight custom/saved/favorite/difficult user vocabulary flashcards list (max 2500 entries, no audio blobs or built-in dictionary duplication)."
+        },
+        "savedFiles": {
+          "type": "array",
+          "description": "Saved source files metadata list (max 100 entries)."
+        },
+        "dailyProgress": {
+          "type": "object",
+          "description": "Daily challenge completion dates, streak count, and total completed count."
+        },
+        "lastSyncAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of the latest confirmed Firestore sync."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server last-updated timestamp."
+        }
+      },
+      "required": [
+        "uid",
+        "email",
+        "username",
+        "xp",
+        "levelNumber",
+        "levelTitleAr",
+        "wordsCount",
+        "masteredCount",
+        "totalReviews",
+        "streak",
+        "selectedVoice",
+        "words",
+        "savedFiles",
+        "dailyProgress",
+        "lastSyncAt",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "LeaderboardEntry": {
+      "title": "LeaderboardEntry",
+      "description": "Public study ranking entry indexed by Firebase UID (synced atomically with /users/{email}).",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the learner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "username": {
+          "type": "string",
+          "description": "Public display name.",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "avatarDataUrl": {
+          "type": "string",
+          "description": "Public preset avatar ID, HTTPS photo URL, or compressed JPEG data URL.",
+          "maxLength": 60000
+        },
+        "xp": {
+          "type": "number",
+          "description": "Computed experience points."
+        },
+        "levelNumber": {
+          "type": "number",
+          "description": "Current study level number."
+        },
+        "levelTitleAr": {
+          "type": "string",
+          "description": "Arabic title for the current level.",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "wordsCount": {
+          "type": "number",
+          "description": "Total saved words count."
+        },
+        "masteredCount": {
+          "type": "number",
+          "description": "Mastered words count."
+        },
+        "totalReviews": {
+          "type": "number",
+          "description": "Total review count across words."
+        },
+        "streak": {
+          "type": "number",
+          "description": "Current daily challenge streak."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server last-updated timestamp."
+        }
+      },
+      "required": [
+        "uid",
+        "username",
+        "xp",
+        "levelNumber",
+        "levelTitleAr",
+        "wordsCount",
+        "masteredCount",
+        "totalReviews",
+        "streak",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "DirectChatThread": {
+      "title": "DirectChatThread",
+      "description": "1-to-1 personal text and voice messaging thread metadata between two verified learners.",
+      "type": "object",
+      "properties": {
+        "chatId": {
+          "type": "string",
+          "description": "Canonical deterministic ID formed by sorted UIDs: participantA_participantB.",
+          "minLength": 3,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "participantIds": {
+          "type": "array",
+          "description": "Sorted pair of the two participant Firebase Auth UIDs (exactly 2 items)."
+        },
+        "participantA": {
+          "type": "string",
+          "description": "Lexicographically smaller Firebase Auth UID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "participantB": {
+          "type": "string",
+          "description": "Lexicographically larger Firebase Auth UID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "nameA": {
+          "type": "string",
+          "description": "Display name of participantA.",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "nameB": {
+          "type": "string",
+          "description": "Display name of participantB.",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "avatarA": {
+          "type": "string",
+          "description": "Optional avatar of participantA.",
+          "maxLength": 60000
+        },
+        "avatarB": {
+          "type": "string",
+          "description": "Optional avatar of participantB.",
+          "maxLength": 60000
+        },
+        "lastMessageText": {
+          "type": "string",
+          "description": "Preview text of the latest message.",
+          "maxLength": 200
+        },
+        "lastMessageKind": {
+          "type": "string",
+          "description": "Type of latest message.",
+          "enum": ["text", "voice"],
+          "maxLength": 10
+        },
+        "lastMessageSenderId": {
+          "type": "string",
+          "description": "UID of the sender of the latest message.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "unreadForUid": {
+          "type": "string",
+          "description": "UID of the recipient with unread messages, or empty string if read.",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server last-updated timestamp."
+        }
+      },
+      "required": [
+        "chatId",
+        "participantIds",
+        "participantA",
+        "participantB",
+        "nameA",
+        "nameB",
+        "lastMessageText",
+        "lastMessageKind",
+        "lastMessageSenderId",
+        "unreadForUid",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "DirectChatMessage": {
+      "title": "DirectChatMessage",
+      "description": "Individual text or voice note message inside a 1-to-1 personal direct chat thread.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Message document ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "chatId": {
+          "type": "string",
+          "description": "Parent DirectChatThread ID.",
+          "minLength": 3,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "participantIds": {
+          "type": "array",
+          "description": "Sorted pair of the two participant UIDs matching parent thread."
+        },
+        "senderId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the message sender.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "recipientId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the message recipient.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "senderName": {
+          "type": "string",
+          "description": "Display name of the sender.",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "kind": {
+          "type": "string",
+          "description": "Message content kind.",
+          "enum": ["text", "voice"],
+          "maxLength": 10
+        },
+        "text": {
+          "type": "string",
+          "description": "Message text body or optional caption for voice message.",
+          "maxLength": 1000
+        },
+        "audioDataUrl": {
+          "type": "string",
+          "description": "Validated base64 audio data URL for voice messages.",
+          "maxLength": 500000,
+          "pattern": "^data:audio/(webm|ogg|mp4|mpeg|wav);base64,[A-Za-z0-9+/=]+$"
+        },
+        "durationSec": {
+          "type": "number",
+          "description": "Duration in seconds for voice messages (1 to 120)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        }
+      },
+      "required": [
+        "id",
+        "chatId",
+        "participantIds",
+        "senderId",
+        "recipientId",
+        "senderName",
+        "kind",
+        "text",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userEmail}": {
+      "schema": { "$ref": "#/entities/UserProfileData" },
+      "description": "Email-keyed user profile (doc ID = trimmed lowercase email), study progress, XP/level, lastSyncAt, and lightweight custom words."
+    },
+    "/leaderboard/{userId}": {
+      "schema": { "$ref": "#/entities/LeaderboardEntry" },
+      "description": "Public PII-free study leaderboard synchronized atomically with /users/{userEmail}."
+    },
+    "/directChats/{chatId}": {
+      "schema": { "$ref": "#/entities/DirectChatThread" },
+      "description": "1-to-1 personal chat threads accessible strictly to the two participants."
+    },
+    "/directChats/{chatId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/DirectChatMessage" },
+      "description": "Text and voice messages inside a 1-to-1 personal chat thread."
+    }
+  }
+}

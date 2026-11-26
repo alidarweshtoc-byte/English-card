@@ -1,0 +1,10 @@
+{
+  "name": "Remix مفردات — منصة تعلم الإنجليزية",
+  "description": "تطبيق ذكي لتعلم اللغة الإنجليزية: استخراج الكلمات من الصور والملفات والنصوص بالذكاء الاصطناعي وحفظها مع ترجمتها ونطقها الصحيح في بطاقات تعليمية تفاعلية.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

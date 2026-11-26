@@ -1,0 +1,374 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Master Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Hardened Global Primitives
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidEmailDocId(emailId) {
+      return emailId is string
+        && emailId.size() >= 3
+        && emailId.size() <= 254
+        && emailId == emailId.lower()
+        && emailId.matches('^[^/\\s@]+@[^/\\s@]+\\.[^/\\s@]+$');
+    }
+
+    function isVerifiedEmailOwner(emailId) {
+      return isVerifiedUser()
+        && request.auth.token.email is string
+        && request.auth.token.email.lower() == emailId;
+    }
+
+    function isValidOptionalAvatar(data) {
+      return !('avatarDataUrl' in data) || (data.avatarDataUrl is string && data.avatarDataUrl.size() <= 60000);
+    }
+
+    function isValidVoice(voice) {
+      return voice is string && voice.size() <= 20 && voice in ['Kore', 'Puck', 'Charon', 'Fenrir', 'Zephyr'];
+    }
+
+    function isValidDailyProgress(dp) {
+      return dp is map
+        && dp.keys().hasAll(['completedDates', 'streak', 'totalCompleted'])
+        && dp.keys().hasOnly(['completedDates', 'streak', 'totalCompleted'])
+        && dp.completedDates is list
+        && dp.completedDates.size() <= 400
+        && (dp.completedDates.size() == 0 || dp.completedDates[0] is string)
+        && dp.streak is number && dp.streak >= 0 && dp.streak <= 10000
+        && dp.totalCompleted is number && dp.totalCompleted >= 0 && dp.totalCompleted <= 100000;
+    }
+
+    // 3. Entity Validation Blueprints (verbatim schema boundaries from firebase-blueprint.json)
+    function isValidUserProfileData(data, userEmail) {
+      return data.keys().hasAll([
+          'uid', 'email', 'username', 'xp', 'levelNumber', 'levelTitleAr',
+          'wordsCount', 'masteredCount', 'totalReviews', 'streak',
+          'selectedVoice', 'words', 'savedFiles', 'dailyProgress',
+          'lastSyncAt', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'email', 'username', 'avatarDataUrl', 'xp', 'levelNumber', 'levelTitleAr',
+          'wordsCount', 'masteredCount', 'totalReviews', 'streak',
+          'selectedVoice', 'words', 'savedFiles', 'dailyProgress',
+          'lastSyncAt', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.uid)
+        && data.uid == request.auth.uid
+        && isValidEmailDocId(data.email)
+        && data.email == userEmail
+        && data.username is string
+        && data.username.size() >= 1
+        && data.username.size() <= 50
+        && isValidOptionalAvatar(data)
+        && data.xp is number && data.xp >= 0 && data.xp <= 50000000
+        && data.levelNumber is number && data.levelNumber >= 1 && data.levelNumber <= 5000
+        && data.levelTitleAr is string && data.levelTitleAr.size() >= 1 && data.levelTitleAr.size() <= 50
+        && data.wordsCount is number && data.wordsCount >= 0 && data.wordsCount <= 2500
+        && data.masteredCount is number && data.masteredCount >= 0 && data.masteredCount <= 2500 && data.masteredCount <= data.wordsCount
+        && data.totalReviews is number && data.totalReviews >= 0 && data.totalReviews <= 1000000
+        && data.streak is number && data.streak >= 0 && data.streak <= 10000
+        && isValidVoice(data.selectedVoice)
+        && data.words is list
+        && data.words.size() <= 2500
+        && (data.words.size() == 0 || data.words[0] is map)
+        && data.savedFiles is list
+        && data.savedFiles.size() <= 100
+        && (data.savedFiles.size() == 0 || data.savedFiles[0] is map)
+        && isValidDailyProgress(data.dailyProgress)
+        && data.lastSyncAt is timestamp
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidLeaderboardEntry(data, userId) {
+      return data.keys().hasAll([
+          'uid', 'username', 'xp', 'levelNumber', 'levelTitleAr', 'wordsCount', 'masteredCount', 'totalReviews', 'streak', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'username', 'avatarDataUrl', 'xp', 'levelNumber', 'levelTitleAr', 'wordsCount', 'masteredCount', 'totalReviews', 'streak', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.uid)
+        && data.uid == userId
+        && data.uid == request.auth.uid
+        && data.username is string
+        && data.username.size() >= 1
+        && data.username.size() <= 50
+        && isValidOptionalAvatar(data)
+        && data.xp is number && data.xp >= 0 && data.xp <= 50000000
+        && data.levelNumber is number && data.levelNumber >= 1 && data.levelNumber <= 5000
+        && data.levelTitleAr is string && data.levelTitleAr.size() >= 1 && data.levelTitleAr.size() <= 50
+        && data.wordsCount is number && data.wordsCount >= 0 && data.wordsCount <= 2500
+        && data.masteredCount is number && data.masteredCount >= 0 && data.masteredCount <= 2500 && data.masteredCount <= data.wordsCount
+        && data.totalReviews is number && data.totalReviews >= 0 && data.totalReviews <= 1000000
+        && data.streak is number && data.streak >= 0 && data.streak <= 10000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidDirectChatThread(data, chatId) {
+      return data.keys().hasAll([
+          'chatId', 'participantIds', 'participantA', 'participantB', 'nameA', 'nameB',
+          'lastMessageText', 'lastMessageKind', 'lastMessageSenderId', 'unreadForUid', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'chatId', 'participantIds', 'participantA', 'participantB', 'nameA', 'nameB',
+          'avatarA', 'avatarB', 'lastMessageText', 'lastMessageKind', 'lastMessageSenderId', 'unreadForUid', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.chatId)
+        && data.chatId == chatId
+        && data.participantIds is list
+        && data.participantIds.size() == 2
+        && data.participantIds[0] is string
+        && data.participantIds[1] is string
+        && isValidId(data.participantA)
+        && isValidId(data.participantB)
+        && data.participantA == data.participantIds[0]
+        && data.participantB == data.participantIds[1]
+        && data.participantA < data.participantB
+        && data.chatId == (data.participantA + '_' + data.participantB)
+        && request.auth.uid in data.participantIds
+        && data.nameA is string && data.nameA.size() >= 1 && data.nameA.size() <= 50
+        && data.nameB is string && data.nameB.size() >= 1 && data.nameB.size() <= 50
+        && (!('avatarA' in data) || (data.avatarA is string && data.avatarA.size() <= 60000))
+        && (!('avatarB' in data) || (data.avatarB is string && data.avatarB.size() <= 60000))
+        && data.lastMessageText is string && data.lastMessageText.size() <= 200
+        && data.lastMessageKind is string && data.lastMessageKind in ['text', 'voice']
+        && isValidId(data.lastMessageSenderId)
+        && data.lastMessageSenderId in data.participantIds
+        && data.unreadForUid is string && data.unreadForUid.size() <= 128
+        && (data.unreadForUid == '' || data.unreadForUid in data.participantIds)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidDirectMessage(data, chatId, messageId) {
+      return data.keys().hasAll([
+          'id', 'chatId', 'participantIds', 'senderId', 'recipientId', 'senderName', 'kind', 'text', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'chatId', 'participantIds', 'senderId', 'recipientId', 'senderName', 'kind', 'text', 'audioDataUrl', 'durationSec', 'createdAt'
+        ])
+        && isValidId(data.id)
+        && data.id == messageId
+        && isValidId(data.chatId)
+        && data.chatId == chatId
+        && data.participantIds is list
+        && data.participantIds.size() == 2
+        && data.participantIds[0] is string
+        && data.participantIds[1] is string
+        && isValidId(data.senderId)
+        && isValidId(data.recipientId)
+        && data.senderId == request.auth.uid
+        && data.recipientId != data.senderId
+        && data.senderId in data.participantIds
+        && data.recipientId in data.participantIds
+        && request.auth.uid in data.participantIds
+        && data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 50
+        && data.kind is string && data.kind in ['text', 'voice']
+        && data.text is string && data.text.size() <= 1000
+        && (data.kind != 'text' || data.text.size() >= 1)
+        && (
+          !('audioDataUrl' in data) || (
+            data.audioDataUrl is string
+            && data.audioDataUrl.size() <= 500000
+            && data.audioDataUrl.matches('^data:audio/(webm|ogg|mp4|mpeg|wav);base64,[A-Za-z0-9+/=]+$')
+          )
+        )
+        && (data.kind != 'voice' || ('audioDataUrl' in data && data.audioDataUrl is string && data.audioDataUrl.size() > 20))
+        && (!('durationSec' in data) || (data.durationSec is number && data.durationSec >= 1 && data.durationSec <= 120))
+        && data.createdAt is timestamp;
+    }
+
+    // 4. Email-Keyed User Profiles & Synced Study Data (/users/{email.trim().toLowerCase()})
+    match /users/{userEmail} {
+      allow get: if isValidEmailDocId(userEmail)
+        && existing().email is string
+        && existing().username is string;
+
+      allow list: if existing().email is string
+        && existing().username is string
+        && existing().xp is number;
+
+      allow create: if isVerifiedEmailOwner(userEmail)
+        && isValidEmailDocId(userEmail)
+        && isValidUserProfileData(incoming(), userEmail)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && incoming().lastSyncAt == request.time;
+
+      allow update: if isVerifiedEmailOwner(userEmail)
+        && isValidEmailDocId(userEmail)
+        && isValidUserProfileData(incoming(), userEmail)
+        && (!('uid' in existing()) || incoming().uid == existing().uid)
+        && (!('email' in existing()) || incoming().email == existing().email)
+        && incoming().updatedAt == request.time
+        && incoming().lastSyncAt == request.time
+        && (
+          (
+            'createdAt' in existing()
+            && incoming().createdAt == existing().createdAt
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'uid', 'username', 'avatarDataUrl', 'xp', 'levelNumber', 'levelTitleAr',
+              'wordsCount', 'masteredCount', 'totalReviews', 'streak',
+              'selectedVoice', 'words', 'savedFiles', 'dailyProgress', 'lastSyncAt', 'updatedAt'
+            ])
+          )
+          ||
+          (
+            !('createdAt' in existing())
+            && incoming().createdAt == request.time
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'uid', 'email', 'username', 'avatarDataUrl', 'xp', 'levelNumber', 'levelTitleAr',
+              'wordsCount', 'masteredCount', 'totalReviews', 'streak',
+              'selectedVoice', 'words', 'savedFiles', 'dailyProgress', 'lastSyncAt', 'createdAt', 'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if isVerifiedEmailOwner(userEmail) && isValidEmailDocId(userEmail);
+    }
+
+    // 5. Public PII-Free Leaderboard (Atomically synced with /users/{userEmail})
+    match /leaderboard/{userId} {
+      allow get: if isValidId(userId)
+        && existing().xp is number
+        && existing().uid is string;
+
+      allow list: if existing().xp is number
+        && existing().xp >= 0
+        && existing().wordsCount is number
+        && existing().wordsCount >= 0
+        && existing().uid is string;
+
+      allow create: if isVerifiedUser()
+        && isValidId(userId)
+        && isOwner(userId)
+        && isValidLeaderboardEntry(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && request.auth.token.email is string
+        && existsAfter(/databases/$(database)/documents/users/$(request.auth.token.email.lower()));
+
+      allow update: if isVerifiedUser()
+        && isValidId(userId)
+        && isOwner(userId)
+        && isValidLeaderboardEntry(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && request.auth.token.email is string
+        && existsAfter(/databases/$(database)/documents/users/$(request.auth.token.email.lower()))
+        && (
+          // Action: Update public profile identity on leaderboard
+          incoming().diff(existing()).affectedKeys().hasOnly(['username', 'avatarDataUrl', 'updatedAt'])
+          ||
+          // Action: Sync computed study XP, rank stats, and profile metadata
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'username', 'avatarDataUrl', 'xp', 'levelNumber', 'levelTitleAr', 'wordsCount', 'masteredCount', 'totalReviews', 'streak', 'updatedAt'
+          ])
+        );
+
+      allow delete: if isVerifiedUser() && isValidId(userId) && isOwner(userId);
+    }
+
+    // 6. 1-to-1 Personal Direct Chats (Text & Voice Notes strictly isolated to the two participants)
+    match /directChats/{chatId} {
+      allow get: if isSignedIn()
+        && isValidId(chatId)
+        && request.auth.uid in existing().participantIds;
+
+      allow list: if isSignedIn()
+        && existing().participantIds is list
+        && request.auth.uid in existing().participantIds;
+
+      allow create: if isVerifiedUser()
+        && isValidId(chatId)
+        && isValidDirectChatThread(incoming(), chatId)
+        && incoming().lastMessageSenderId == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && existsAfter(/databases/$(database)/documents/leaderboard/$(incoming().participantA))
+        && existsAfter(/databases/$(database)/documents/leaderboard/$(incoming().participantB));
+
+      allow update: if isVerifiedUser()
+        && isValidId(chatId)
+        && request.auth.uid in existing().participantIds
+        && isValidDirectChatThread(incoming(), chatId)
+        && incoming().chatId == existing().chatId
+        && incoming().participantIds == existing().participantIds
+        && incoming().participantA == existing().participantA
+        && incoming().participantB == existing().participantB
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action: Send new personal message in thread
+          (
+            incoming().lastMessageSenderId == request.auth.uid
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'lastMessageText', 'lastMessageKind', 'lastMessageSenderId', 'unreadForUid', 'nameA', 'nameB', 'avatarA', 'avatarB', 'updatedAt'
+            ])
+          )
+          ||
+          // Action: Mark thread as read by recipient
+          (
+            existing().unreadForUid == request.auth.uid
+            && incoming().unreadForUid == ''
+            && incoming().diff(existing()).affectedKeys().hasOnly(['unreadForUid', 'updatedAt'])
+          )
+        );
+
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow get: if isSignedIn()
+          && isValidId(chatId)
+          && isValidId(messageId)
+          && request.auth.uid in existing().participantIds;
+
+        allow list: if isSignedIn()
+          && existing().participantIds is list
+          && request.auth.uid in existing().participantIds;
+
+        allow create: if isVerifiedUser()
+          && isValidId(chatId)
+          && isValidId(messageId)
+          && isValidDirectMessage(incoming(), chatId, messageId)
+          && incoming().createdAt == request.time
+          && getAfter(/databases/$(database)/documents/directChats/$(chatId)).data.participantIds == incoming().participantIds;
+
+        allow update: if false;
+
+        allow delete: if isVerifiedUser()
+          && isValidId(chatId)
+          && isValidId(messageId)
+          && existing().senderId == request.auth.uid;
+      }
+    }
+  }
+}
